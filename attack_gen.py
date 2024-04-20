@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import re
 
 def process_nessus_file(nessus_file_path, output_file_path):
     # Load and parse the .nessus file
@@ -21,6 +22,14 @@ def process_nessus_file(nessus_file_path, output_file_path):
             port = item.attrib.get('port', '0')
             protocol = item.attrib.get('protocol', 'N/A')
             svc_name = item.attrib.get('svc_name', 'N/A')
+            cpe = item.find('.//cpe')
+            plugin_name = item.attrib.get('pluginName', 'N/A')
+
+            # Determine the Web_Product from cpe or plugin name
+            if cpe is not None:
+                web_product = re.split(r":\d+:", cpe.text.split(':')[-1])[0]  # Extracts product name before version number
+            else:
+                web_product = re.split(r"\s|\-|\_|\:", plugin_name)[0]  # Splits by common delimiters and takes first element
 
             # Ignore entries where port is 0
             if port != '0':
@@ -34,7 +43,7 @@ def process_nessus_file(nessus_file_path, output_file_path):
                     vul_exists.append(f"vulExists('{hostname}', '{cve}', '{svc_name}').")
                     vul_properties.append(f"vulProperty('{cve}', remoteExploit, privEscalation).")
                 if cve_list:  # Only add network service info if there's at least one CVE
-                    network_service_info.append(f"networkServiceInfo('{hostname}', '{svc_name}', '{protocol}', '{port}', '{svc_name}').")
+                    network_service_info.append(f"networkServiceInfo('{hostname}', '{svc_name}', '{protocol}', '{port}', '{web_product}').")
 
     # Prepare the content for the output file
     attack_p_content = "attackerLocated(internet).\n"
@@ -52,4 +61,4 @@ def process_nessus_file(nessus_file_path, output_file_path):
         file.write(attack_p_content)
 
 # Example usage:
-process_nessus_file("./data/vul_bivxy9.nessus", "./data/nattack.P")
+process_nessus_file("./data/ul_vuev2n.nessus", "./data/attack.P")
